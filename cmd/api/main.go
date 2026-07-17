@@ -1,18 +1,24 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/kirki58/greenlight/m/internal/data"
+	_ "github.com/lib/pq"
 )
 
 // Declare a string containing the application version number. Later in the book we'll
 // generate this automatically at build time, but for now we'll just store the version
 // number as a hard-coded global constant.
 const version = "1.0.0"
+
+const defaultDbDriver = "postgres"
 
 // Define a config struct to hold all the configuration settings for our application.
 // For now, the only configuration settings will be the network port that we want the
@@ -22,6 +28,7 @@ const version = "1.0.0"
 type config struct {
 	port int
 	env  string
+	db   databaseCfg
 }
 
 // Define an application struct to hold the dependencies for our HTTP handlers, helpers,
@@ -31,17 +38,20 @@ type application struct {
 	config       config
 	logger       *log.Logger
 	uniValidator *UniversalValidator
+	models       data.Models
 }
 
 func main() {
-	// Declare an instance of the config struct.
 	var cfg config
-	// Read the value of the port and env command-line flags into the config struct. We
-	// default to using the port number 4000 and the environment "development" if no
-	// corresponding flags are provided.
-	flag.IntVar(&cfg.port, "port", 4000, "API server port")
-	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
-	flag.Parse()
+	parseCliFlags(&cfg)
+
+	// Environment-specific configuruations
+	if cfg.env == "development" && cfg.db.dsn == "" {
+		cfg.db.dsn = os.Getenv("GREENLIGHT_DB_DSN_DEV")
+	} else if cfg.env == "production" && cfg.db.dsn == "" {
+		cfg.db.dsn = os.Getenv("GREENLIGHT_DB_DSN")
+	}
+
 	// Initialize a new logger which writes messages to the standard out stream,
 	// prefixed with the current date and time.
 	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
@@ -58,6 +68,15 @@ func main() {
 	}
 	app.uniValidator.UseJSONTagNames()
 	app.RegisterCustomValidations()
+	db, err := app.connectDb()
+	if err != nil {
+		logger.Fatal("Could not establish a connection pool, ", err)
+	}
+	defer db.Close()
+
+	logger.Println("Database connection pool established")
+	app.setModels(db)
+
 	// Declare a new servemux and add a /v1/healthcheck route which dispatches requests
 	// to the healthcheckHandler method (which we will create in a moment).
 	// Declare a HTTP server with some sensible timeout settings, which listens on the
@@ -75,5 +94,40 @@ func main() {
 	err = srv.ListenAndServe()
 	if err != http.ErrServerClosed {
 		logger.Fatal(err)
+	}
+}
+
+func parseCliFlags(cfg *config) {
+	// Declare an instance of the config struct.
+
+	// application configuration from command-line flags
+	flag.IntVar(&cfg.port, "port", 4000, "API server port")
+	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
+
+	// Db configuration
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "", "Database connection string to be used, It is recommended to pass this as an environment variable instead which is the default")
+	flag.StringVar(&cfg.db.driver, "db-driver", defaultDbDriver, "Driver name to be used for DB connection")
+	connTimeoutFlag := *flag.String("db-conn-timeout", "5s", "First ping response timeout for the Database")
+	flag.IntVar(&cfg.db.pool.maxOpenConns, "db-max-open-conn", 25, "Maximum open database connections in the pool")
+	flag.IntVar(&cfg.db.pool.maxIdleConns, "db-max-idle-conn", 15, "Maximum number of database connections sitting idle in the pool (can't exceed db-max-open-conn)")
+	maxIdleTimeFlag := *flag.String("db-max-idle-time", "15m", "Maximum time duration of connections sitting idle in the pool before they are terminated")
+	flag.Parse()
+
+	parsedDuration, err := time.ParseDuration(connTimeoutFlag)
+	if err != nil {
+		log.Fatal("db-conn-timeout should be a parsable time expression: \"5s\", \"10m\", \"1d\" etc.")
+	}
+	cfg.db.connTimeout = parsedDuration
+
+	parsedMaxIdle, err := time.ParseDuration(maxIdleTimeFlag)
+	if err != nil {
+		log.Fatal("db-max-idle should be a parsable time expression: \"5s\", \"10m\", \"1d\" etc.")
+	}
+	cfg.db.pool.connMaxIdleTime = parsedMaxIdle
+}
+
+func (app *application) setModels(db *sql.DB){
+	app.models = data.Models{
+		MovieRepository: data.NewMovieModel(db),
 	}
 }

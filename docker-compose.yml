@@ -1,0 +1,30 @@
+services:
+  postgres:
+    build: .
+    container_name: local-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    secrets:
+      - app_db
+      - app_db_password
+      - app_db_user
+
+
+# Use Vault in production for dynamic postgres credentials
+secrets:
+  app_db:
+    environment: "APP_DB"
+  app_db_password:
+    environment: "APP_DB_PASSWORD"
+  app_db_user:
+    environment: "APP_DB_USER"
+
+
+volumes:
+  postgres_data:

@@ -30,8 +30,12 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 	// Map to an actual Movie type
 	movie := movieDto.Map()
 
-	// Dump the contents of the obtained movie in a HTTP response.
-	fmt.Fprintf(w, "%+v\n", movie)
+	err = app.models.MovieRepository.Insert(&movie)
+	if err != nil{
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	app.createdResponse(w, r, movie, fmt.Sprintf("/v1/movies/%d", movie.ID))
 }
 
 // showMovieHandler for the "GET /v1/movies/:id

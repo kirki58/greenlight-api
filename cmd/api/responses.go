@@ -87,3 +87,11 @@ func (app *application) badRequestResponse(w http.ResponseWriter, r *http.Reques
 func (app *application) failedValidationResponse(w http.ResponseWriter, r *http.Request, errors map[string]string) {
 	app.errorResponse(w, r, http.StatusUnprocessableEntity, errors)
 }
+
+func (app *application) createdResponse(w http.ResponseWriter, r *http.Request, created any, location string){
+	headers := make(http.Header)
+	headers.Set("Location", location)
+	if err := app.writeJSONResponse(w, created, http.StatusCreated, headers); err != nil{
+		app.serverErrorResponse(w, r, err)
+	}
+}
