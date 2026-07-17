@@ -105,7 +105,7 @@ func parseCliFlags(cfg *config) {
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 
 	// Db configuration
-	flag.StringVar(&cfg.db.dsn, "db-dsn", "", "Database connection string to be used, It is recommended to pass this as an environment variable instead which is the default")
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "", "Database connection string to be used, It can also be passed as an environment variable which overrides the CLI arguement")
 	flag.StringVar(&cfg.db.driver, "db-driver", defaultDbDriver, "Driver name to be used for DB connection")
 	connTimeoutFlag := *flag.String("db-conn-timeout", "5s", "First ping response timeout for the Database")
 	flag.IntVar(&cfg.db.pool.maxOpenConns, "db-max-open-conn", 25, "Maximum open database connections in the pool")

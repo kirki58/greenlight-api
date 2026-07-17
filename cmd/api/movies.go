@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -46,16 +47,18 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	dummyMovie := data.Movie{
-		ID:        id,
-		CreatedAt: time.Now(),
-		Title:     "Awesome Movie",
-		Runtime:   100,
-		Year:      0,
-		Version:   1,
+	mov, err := app.models.MovieRepository.Get(id)
+	if err != nil{
+		switch{
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
 	}
 
-	if err := app.writeJSONResponse(w, envelope{"movie": dummyMovie}, http.StatusOK, nil); err != nil {
+	if err := app.writeJSONResponse(w, envelope{"movie": mov}, http.StatusOK, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
