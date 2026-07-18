@@ -42,10 +42,3 @@ func (dto PartialMovieDto) MapTo(mov *Movie) *Movie {
 	}
 	return mov
 }
-
-func (movie *Movie) AddId(id int64) *Movie {
-	if id > 0 && movie.ID == 0 {
-		movie.ID = id
-	}
-	return movie
-}
