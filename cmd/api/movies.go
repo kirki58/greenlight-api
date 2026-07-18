@@ -90,7 +90,13 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 
 	_ = movieDto.MapTo(mov)
 	if err := app.models.MovieRepository.Update(mov); err != nil{
-		app.serverErrorResponse(w, r, err)
+		switch {
+		case errors.Is(err, data.ErrUpdateConflict):
+			app.updateConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
 	}
 	
 	if err := app.writeJSONResponse(w, envelope{"movie": mov}, http.StatusOK, nil); err != nil {
@@ -127,7 +133,13 @@ func (app *application) partialUpdateMovieHandler(w http.ResponseWriter, r *http
 
 	_ = partialMovieDto.MapTo(mov)
 	if err := app.models.MovieRepository.Update(mov); err != nil{
-		app.serverErrorResponse(w, r, err)
+		switch {
+		case errors.Is(err, data.ErrUpdateConflict):
+			app.updateConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
 	}
 	
 	if err := app.writeJSONResponse(w, envelope{"movie": mov}, http.StatusOK, nil); err != nil {

@@ -88,6 +88,10 @@ func (app *application) failedValidationResponse(w http.ResponseWriter, r *http.
 	app.errorResponse(w, r, http.StatusUnprocessableEntity, errors)
 }
 
+func (app *application) updateConflictResponse(w http.ResponseWriter, r *http.Request) {
+	app.errorResponse(w, r, http.StatusConflict, "The resource could not be updated due to a conflict with another request")
+}
+
 func (app *application) createdResponse(w http.ResponseWriter, r *http.Request, created any, location string){
 	headers := make(http.Header)
 	headers.Set("Location", location)
