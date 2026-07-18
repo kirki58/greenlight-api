@@ -1,5 +1,4 @@
 bin/
 migrations/
 remote/
-secrets/
 .env
