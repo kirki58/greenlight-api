@@ -11,8 +11,7 @@ import (
 
 var currentYear int = time.Now().Year()
 
-// createMovieHandler for the "POST /v1/movies" endpoint. For now we simply
-// return a plain-text placeholder response.
+// createMovieHandler for the "POST /v1/movies" endpoint.
 func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Request) {
 	movieDto := data.MovieDto{}
 
@@ -38,7 +37,7 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 	app.createdResponse(w, r, movie, fmt.Sprintf("/v1/movies/%d", movie.ID))
 }
 
-// showMovieHandler for the "GET /v1/movies/:id
+// showMovieHandler for the "GET /v1/movies/:id" endpoint
 func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
@@ -62,7 +61,7 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-// updateMovie handler for the "PUT /v1/movies/:id
+// updateMovieHandler for the "PUT /v1/movies/:id" endpoint
 func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
@@ -98,6 +97,7 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 	}
 }
 
+// deleteMovieHandler for the "DELETE /v1/movies/:id" endpoint
 func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
