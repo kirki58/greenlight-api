@@ -27,7 +27,7 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Map to an actual Movie type
-	movie := movieDto.Map()
+	movie := movieDto.MapTo(nil)
 
 	err = app.models.MovieRepository.Insert(movie)
 	if err != nil {
@@ -69,7 +69,8 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if _, err = app.models.MovieRepository.Get(id); err != nil {
+	mov, err := app.models.MovieRepository.Get(id)
+	if  err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
 			app.notFoundResponse(w, r)
@@ -87,7 +88,44 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	mov := movieDto.Map().AddId(id)
+	_ = movieDto.MapTo(mov)
+	if err := app.models.MovieRepository.Update(mov); err != nil{
+		app.serverErrorResponse(w, r, err)
+	}
+	
+	if err := app.writeJSONResponse(w, envelope{"movie": mov}, http.StatusOK, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// partialUpdateMovieHandler for the "PATCH /v1/movies/:id" endpoint
+func (app *application) partialUpdateMovieHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.badRequestResponse(w, r, "Invalid ID in request path")
+		return
+	}
+
+	mov, err := app.models.MovieRepository.Get(id)
+	if  err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	partialMovieDto := data.PartialMovieDto{}
+	app.readJSONRequest(w, r, &partialMovieDto)
+
+	if validationErors := app.uniValidator.ValidateBody(partialMovieDto); validationErors != nil {
+		app.failedValidationResponse(w, r, validationErors)
+		return
+	}
+
+	_ = partialMovieDto.MapTo(mov)
 	if err := app.models.MovieRepository.Update(mov); err != nil{
 		app.serverErrorResponse(w, r, err)
 	}
