@@ -5,10 +5,10 @@ type Mapper[T any] interface {
 }
 
 type MovieDto struct {
-	Title   string   `json:"title" validate:"required,max=500"`
+	Title   string   `json:"title" validate:"required,min=0,max=500"`
 	Year    int32    `json:"year" validate:"required,yearfrom=1888"`
 	Runtime Runtime  `json:"runtime" validate:"required,gt=0"`
-	Genres  []string `json:"genres" validate:"required,unique"`
+	Genres  []string `json:"genres" validate:"required,unique,dive,min=0,max=100"`
 }
 
 func (dto MovieDto) MapTo(mov *Movie) *Movie {
@@ -21,10 +21,10 @@ func (dto MovieDto) MapTo(mov *Movie) *Movie {
 }
 
 type PartialMovieDto struct{
-	Title   *string   `json:"title" validate:"omitempty,max=500"`
+	Title   *string   `json:"title" validate:"omitempty,min=0,max=500"`
 	Year    *int32    `json:"year" validate:"omitempty,yearfrom=1888"`
 	Runtime *Runtime  `json:"runtime" validate:"omitempty,gt=0"`
-	Genres  []string `json:"genres" validate:"omitempty,unique"`
+	Genres  []string `json:"genres" validate:"omitempty,unique,dive,min=0,max=100"`
 }
 
 func (dto PartialMovieDto) MapTo(mov *Movie) *Movie {
