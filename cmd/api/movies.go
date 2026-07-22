@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -30,7 +31,7 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 	movie := movieDto.MapTo(nil)
 
 	err = app.models.MovieRepository.Insert(r.Context(), movie)
-	if err != nil {
+	if err != nil && !errors.Is(r.Context().Err(), context.Canceled){
 		app.serverErrorResponse(w, r, err)
 		return
 	}
@@ -50,6 +51,8 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
 			app.notFoundResponse(w, r)
+		case errors.Is(r.Context().Err(), context.Canceled):
+			break
 		default:
 			app.serverErrorResponse(w, r, err)
 		}
@@ -74,6 +77,8 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
 			app.notFoundResponse(w, r)
+		case errors.Is(r.Context().Err(), context.Canceled):
+			break
 		default:
 			app.serverErrorResponse(w, r, err)
 		}
@@ -93,6 +98,8 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		switch {
 		case errors.Is(err, data.ErrUpdateConflict):
 			app.updateConflictResponse(w, r)
+		case errors.Is(r.Context().Err(), context.Canceled):
+			break
 		default:
 			app.serverErrorResponse(w, r, err)
 		}
@@ -117,6 +124,8 @@ func (app *application) partialUpdateMovieHandler(w http.ResponseWriter, r *http
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
 			app.notFoundResponse(w, r)
+		case errors.Is(r.Context().Err(), context.Canceled):
+			break
 		default:
 			app.serverErrorResponse(w, r, err)
 		}
@@ -136,6 +145,8 @@ func (app *application) partialUpdateMovieHandler(w http.ResponseWriter, r *http
 		switch {
 		case errors.Is(err, data.ErrUpdateConflict):
 			app.updateConflictResponse(w, r)
+		case errors.Is(r.Context().Err(), context.Canceled):
+			break
 		default:
 			app.serverErrorResponse(w, r, err)
 		}
@@ -160,6 +171,8 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
 			app.notFoundResponse(w, r)
+		case errors.Is(r.Context().Err(), context.Canceled):
+			break
 		default:
 			app.serverErrorResponse(w, r, err)
 		}
