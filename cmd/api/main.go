@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/gorilla/schema"
 	"github.com/kirki58/greenlight/m/internal/data"
 	_ "github.com/lib/pq"
 )
@@ -38,6 +39,7 @@ type application struct {
 	config       config
 	logger       *log.Logger
 	uniValidator *UniversalValidator
+	schemaDecoder *schema.Decoder
 	models       data.Models
 }
 
@@ -65,7 +67,10 @@ func main() {
 		config:       cfg,
 		logger:       logger,
 		uniValidator: uv,
+		schemaDecoder: schema.NewDecoder(),
 	}
+	app.schemaDecoder.IgnoreUnknownKeys(true)
+
 	app.uniValidator.UseJSONTagNames()
 	app.RegisterCustomValidations()
 	db, err := app.connectDb()

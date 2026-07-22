@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/gorilla/schema"
 )
 
 const maxJSONRequestBodyBytes int64 = 1_048_576 // 1MB
@@ -93,6 +95,37 @@ func (app *application) readJSONRequest(w http.ResponseWriter, r *http.Request, 
 	// We expect a single JSON object in the request for every endpoint
 	if err := jsonDecoder.Decode(dst); !errors.Is(err, io.EOF) {
 		return errors.New("Only a single JSON object is expected in the request body")
+	}
+
+	return nil
+}
+
+func (app *application) readQueriedRequest(w http.ResponseWriter, r *http.Request, dst any) map[string]string{
+	err := app.schemaDecoder.Decode(dst, r.URL.Query())
+	if err != nil {
+		var multiErr schema.MultiError
+		if errors.As(err, &multiErr) {
+			var convErr schema.ConversionError
+			var unknownKeyErr schema.UnknownKeyError
+			var emptyFieldErr schema.EmptyFieldError
+
+			var errs map[string]string
+			for field, _ := range multiErr{
+				switch{
+				case errors.As(err, &convErr):
+					errs[field] = fmt.Sprint("must be a valid %s value", convErr.Type.Kind())
+				case errors.As(err, &unknownKeyErr):
+					errs[field] = fmt.Sprintf("Is an unknown query parameter")
+				case errors.As(err, &emptyFieldErr):
+					errs[field] = fmt.Sprintf("Is an empty query parameter (not allowed)")
+				}
+			}
+			return errs
+			
+		} else {
+			// If it's not a MultiError, it's a developer bug (e.g. passed a non-pointer)
+			panic(err)
+		}
 	}
 
 	return nil

@@ -8,7 +8,7 @@ type MovieDto struct {
 	Title   string   `json:"title" validate:"required,min=0,max=500"`
 	Year    int32    `json:"year" validate:"required,yearfrom=1888"`
 	Runtime Runtime  `json:"runtime" validate:"required,gt=0"`
-	Genres  []string `json:"genres" validate:"required,unique,dive,min=0,max=100"`
+	Genres  []string `json:"genres" validate:"required,omitempty,unique,dive,min=0,max=100"`
 }
 
 func (dto MovieDto) MapTo(mov *Movie) *Movie {

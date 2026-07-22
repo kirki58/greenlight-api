@@ -31,7 +31,7 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 	movie := movieDto.MapTo(nil)
 
 	err = app.models.MovieRepository.Insert(r.Context(), movie)
-	if err != nil && !errors.Is(r.Context().Err(), context.Canceled){
+	if err != nil && !errors.Is(r.Context().Err(), context.Canceled) {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
@@ -60,6 +60,26 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := app.writeJSONResponse(w, envelope{"movie": mov}, http.StatusOK, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// listMoviesHandler for the "GET /v1/movies" endpoint
+func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse query parameters
+	var query AllMoviesQuery
+
+	if errs := app.readQueriedRequest(w, r, &query); errs != nil {
+		app.badRequestResponse(w, r, errs)
+		return
+	}
+
+	if validationErors := app.uniValidator.ValidateBody(query); validationErors != nil {
+		app.failedValidationResponse(w, r, validationErors)
+		return
+	}
+
+	if err := app.writeJSONResponse(w, envelope{"query": query}, http.StatusOK, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }

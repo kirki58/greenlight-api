@@ -11,5 +11,6 @@ func (app *application) routes() *http.ServeMux{
 	mux.HandleFunc("PUT /v1/movies/{id}", app.updateMovieHandler)
 	mux.HandleFunc("DELETE /v1/movies/{id}", app.deleteMovieHandler)
 	mux.HandleFunc("PATCH /v1/movies/{id}", app.partialUpdateMovieHandler)
+	mux.HandleFunc("GET /v1/movies", app.listMoviesHandler)
 	return mux
 }
