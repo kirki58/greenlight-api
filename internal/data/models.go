@@ -1,19 +1,21 @@
 package data
 
+import "context"
+
 type Inserter[T any] interface{
-	Insert(T) error
+	Insert(context.Context, T) error
 }
 
 type Getter[T any, P any] interface{
-	Get(id P) (T, error)
+	Get(ctx context.Context, id P) (T, error)
 }
 
 type Updater[T any] interface{
-	Update(T) error
+	Update(context.Context ,T) error
 }
 
 type Deleter[T any, P any] interface{
-	Delete(id P) error
+	Delete(ctx context.Context, id P) error
 }
 
 // Collection of data models that satisfy the above interface

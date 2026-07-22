@@ -1,12 +1,18 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
 
 	"github.com/lib/pq"
 )
+
+var insertTimeout time.Duration = 3 * time.Second
+var getTimeut time.Duration = 2 * time.Second
+var updateTimeout time.Duration = 3 * time.Second
+var deleteTimeout time.Duration = 2 * time.Second
 
 type Movie struct {
 	ID        int64     `json:"id"`
@@ -28,7 +34,7 @@ func NewMovieModel(db *sql.DB) MovieModel {
 	}
 }
 
-func (m MovieModel) Insert(movie *Movie) error {
+func (m MovieModel) Insert(ctx context.Context, movie *Movie) error {
 	// Define the SQL query for inserting a new record in the movies table and returning
 	// the system-generated data.
 	query := `
@@ -42,10 +48,12 @@ func (m MovieModel) Insert(movie *Movie) error {
 	// Use the QueryRow() method to execute the SQL query on our connection pool,
 	// passing in the args slice as a variadic parameter and scanning the system-
 	// generated id, created_at and version values into the movie struct.
-	return m.db.QueryRow(query, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
+	queryCtx, cancel := context.WithTimeout(ctx, insertTimeout)
+	defer cancel()
+	return m.db.QueryRowContext(queryCtx, query, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
 }
 
-func (m MovieModel) Get(id int64) (*Movie, error) {
+func (m MovieModel) Get(ctx context.Context, id int64) (*Movie, error) {
 	if id < 1 {
 		return nil, ErrRecordNotFound
 	}
@@ -58,7 +66,10 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 
 	var movie Movie
 
-	err := m.db.QueryRow(query, id).Scan(
+	queryCtx, cancel := context.WithTimeout(ctx, getTimeut)
+	defer cancel()
+
+	err := m.db.QueryRowContext(queryCtx, query, id).Scan(
 		&movie.ID,
 		&movie.CreatedAt,
 		&movie.Title,
@@ -68,10 +79,10 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 		&movie.Version,
 	)
 
-	if err != nil{
-		if errors.Is(err, sql.ErrNoRows){
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrRecordNotFound
-		}else{
+		} else {
 			return nil, err
 		}
 	}
@@ -79,7 +90,7 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 	return &movie, nil
 }
 
-func (m MovieModel) Update(movie *Movie) error {
+func (m MovieModel) Update(ctx context.Context, movie *Movie) error {
 	query := `
 		UPDATE movies
 		SET title = $1, year = $2, runtime = $3, genres = $4, version = version + 1
@@ -87,7 +98,9 @@ func (m MovieModel) Update(movie *Movie) error {
 		RETURNING version
 	`
 
-	err := m.db.QueryRow(query, movie.Title, movie.Year, movie.Runtime, pq.Array(movie.Genres), movie.ID, movie.Version).Scan(&movie.Version)
+	queryCtx, cancel := context.WithTimeout(ctx, updateTimeout)
+	defer cancel()
+	err := m.db.QueryRowContext(queryCtx, query, movie.Title, movie.Year, movie.Runtime, pq.Array(movie.Genres), movie.ID, movie.Version).Scan(&movie.Version)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -99,22 +112,24 @@ func (m MovieModel) Update(movie *Movie) error {
 	return nil
 }
 
-func (m MovieModel) Delete(id int64) error {
+func (m MovieModel) Delete(ctx context.Context, id int64) error {
 	if id < 1 {
 		return ErrRecordNotFound
 	}
 	query := `
 		DELETE FROM movies WHERE id = $1
 	`
-	result, err := m.db.Exec(query, id)
-	if err != nil{
+	queryCtx, cancel := context.WithTimeout(ctx, deleteTimeout)
+	defer cancel()
+	result, err := m.db.ExecContext(queryCtx, query, id)
+	if err != nil {
 		return err
 	}
 	rowsAffected, err := result.RowsAffected()
-	if err != nil{
+	if err != nil {
 		return err
 	}
-	if rowsAffected == 0{
+	if rowsAffected == 0 {
 		return ErrRecordNotFound
 	}
 
@@ -123,18 +138,18 @@ func (m MovieModel) Delete(id int64) error {
 
 type MovieModelMock struct{}
 
-func (m MovieModelMock) Insert(movie *Movie) error {
+func (m MovieModelMock) Insert(ctx context.Context, movie *Movie) error {
 	return nil
 }
 
-func (m MovieModelMock) Get(id int64) (*Movie, error) {
+func (m MovieModelMock) Get(ctx context.Context, id int64) (*Movie, error) {
 	return nil, nil
 }
 
-func (m MovieModelMock) Update(movie *Movie) error {
+func (m MovieModelMock) Update(ctx context.Context, movie *Movie) error {
 	return nil
 }
 
-func (m MovieModelMock) Delete(id int64) error {
+func (m MovieModelMock) Delete(ctx context.Context, id int64) error {
 	return nil
 }

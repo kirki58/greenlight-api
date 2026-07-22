@@ -29,7 +29,7 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 	// Map to an actual Movie type
 	movie := movieDto.MapTo(nil)
 
-	err = app.models.MovieRepository.Insert(movie)
+	err = app.models.MovieRepository.Insert(r.Context(), movie)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -45,7 +45,7 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	mov, err := app.models.MovieRepository.Get(id)
+	mov, err := app.models.MovieRepository.Get(r.Context(), id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -69,8 +69,8 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	mov, err := app.models.MovieRepository.Get(id)
-	if  err != nil {
+	mov, err := app.models.MovieRepository.Get(r.Context(), id)
+	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
 			app.notFoundResponse(w, r)
@@ -89,7 +89,7 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	_ = movieDto.MapTo(mov)
-	if err := app.models.MovieRepository.Update(mov); err != nil{
+	if err := app.models.MovieRepository.Update(r.Context(), mov); err != nil {
 		switch {
 		case errors.Is(err, data.ErrUpdateConflict):
 			app.updateConflictResponse(w, r)
@@ -98,7 +98,7 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		}
 		return
 	}
-	
+
 	if err := app.writeJSONResponse(w, envelope{"movie": mov}, http.StatusOK, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
@@ -112,8 +112,8 @@ func (app *application) partialUpdateMovieHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	mov, err := app.models.MovieRepository.Get(id)
-	if  err != nil {
+	mov, err := app.models.MovieRepository.Get(r.Context(), id)
+	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
 			app.notFoundResponse(w, r)
@@ -132,7 +132,7 @@ func (app *application) partialUpdateMovieHandler(w http.ResponseWriter, r *http
 	}
 
 	_ = partialMovieDto.MapTo(mov)
-	if err := app.models.MovieRepository.Update(mov); err != nil{
+	if err := app.models.MovieRepository.Update(r.Context(), mov); err != nil {
 		switch {
 		case errors.Is(err, data.ErrUpdateConflict):
 			app.updateConflictResponse(w, r)
@@ -141,7 +141,7 @@ func (app *application) partialUpdateMovieHandler(w http.ResponseWriter, r *http
 		}
 		return
 	}
-	
+
 	if err := app.writeJSONResponse(w, envelope{"movie": mov}, http.StatusOK, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
@@ -154,8 +154,8 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 		app.badRequestResponse(w, r, "Invalid ID in request path")
 		return
 	}
-	
-	err = app.models.MovieRepository.Delete(id)
+
+	err = app.models.MovieRepository.Delete(r.Context(), id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -165,7 +165,7 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 		}
 		return
 	}
-	
+
 	if err := app.writeJSONResponse(w, nil, http.StatusNoContent, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
